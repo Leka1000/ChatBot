@@ -13,7 +13,6 @@ st.set_page_config(
     layout="centered",
 )
 
-# Estilização customizada com st.markdown para bordas e visual profissional
 st.markdown(
     """
     <style>
@@ -50,7 +49,6 @@ st.sidebar.markdown(
     "Insira suas credenciais do Microsoft Foundry com segurança para estabelecer a conexão."
 )
 
-# Campos protegidos para inserção de credenciais pelo usuário
 minha_chave = st.sidebar.text_input("minha_chave (API Key)", type="password")
 meu_endpoint = st.sidebar.text_input(
     "meu_endpoint", 
@@ -74,13 +72,14 @@ def extrair_texto_arquivo(arquivo):
     texto = ""
     if arquivo is not None:
         try:
-            if arquivo.type == "application/pdf":
+            nome_arquivo = arquivo.name.lower()
+            if nome_arquivo.endswith(".pdf"):
                 leitor_pdf = PdfReader(arquivo)
                 for pagina in leitor_pdf.pages:
                     texto_pagina = pagina.extract_text()
                     if texto_pagina:
                         texto += texto_pagina + "\n"
-            elif arquivo.type == "text/plain":
+            elif nome_arquivo.endswith(".txt"):
                 texto = arquivo.getvalue().decode("utf-8")
         except Exception as e:
             st.sidebar.error(f"Erro ao processar o arquivo: {e}")
@@ -119,62 +118,28 @@ st.markdown(
     "consultas contextuais."
 )
 
-# Alerta caso faltem credenciais
 if not minha_chave or not meu_endpoint or not meu_modelo:
     st.warning("⚠️ Por favor, preencha **minha_chave**, **meu_endpoint** e **meu_modelo** na barra lateral para iniciar o chat.")
 
-# Inicializa o histórico de mensagens no session_state
 if "messages" not in st.session_state:
     st.session_state.messages = []
 
-# Exibe o histórico de mensagens anteriores
 for message in st.session_state.messages:
     with st.chat_message(message["role"]):
         st.markdown(message["content"])
 
-# Captura a entrada do usuário
 if prompt_usuario := st.chat_input("Digite sua mensagem aqui..."):
     if not client:
         st.error("Conexão não estabelecida. Verifique se preencheu todas as credenciais na barra lateral.")
     else:
-        # Adiciona a mensagem do usuário ao histórico
         st.session_state.messages.append(
             {"role": "user", "content": prompt_usuario}
         )
         with st.chat_message("user"):
             st.markdown(prompt_usuario)
 
-        # Constrói o prompt do sistema integrando o RAG básico (se houver documento)
         sistema_prompt = (
             "Você é um assistente virtual prestativo e profissional especializado em "
             "responder dúvidas com base no contexto fornecido."
         )
-        if contexto_rag:
-            sistema_prompt += (
-                "\n\nUtilize obrigatoriamente as informações do documento abaixo para "
-                "embasar suas respostas, caso sejam relevantes para a pergunta do "
-                f"usuário:\n--- INÍCIO DO DOCUMENTO ---\n{contexto_rag}\n--- FIM DO DOCUMENTO ---"
-            )
-
-        # Monta o payload de mensagens para a API
-        mensagens_api = [{"role": "system", "content": sistema_prompt}]
-        for msg in st.session_state.messages:
-            mensagens_api.append({"role": msg["role"], "content": msg["content"]})
-
-        # Gera a resposta do modelo na interface
-        with st.chat_message("assistant"):
-            with st.spinner("Pensando..."):
-                try:
-                    resposta = client.chat.completions.create(
-                        model=meu_modelo, messages=mensagens_api, temperature=0.7
-                    )
-                    resposta_texto = resposta.choices[0].message.content
-                    st.markdown(resposta_texto)
-
-                    # Salva a resposta no histórico do session_state
-                    st.session_state.messages.append(
-                        {"role": "assistant", "content": resposta_texto}
-                    )
-                except Exception as e:
-                    erro_msg = f"Ocorreu um erro ao comunicar com a API do Microsoft Foundry: {e}"
-                    st.error(erro_msg)
+        if contexto_rag
