@@ -142,4 +142,4 @@ if prompt_usuario := st.chat_input("Digite sua mensagem aqui..."):
             "Você é um assistente virtual prestativo e profissional especializado em "
             "responder dúvidas com base no contexto fornecido."
         )
-        if contexto_rag
+        if contexto_rag:
