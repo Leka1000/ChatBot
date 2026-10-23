@@ -143,3 +143,28 @@ if prompt_usuario := st.chat_input("Digite sua mensagem aqui..."):
             "responder dúvidas com base no contexto fornecido."
         )
         if contexto_rag:
+            sistema_prompt += (
+                "\n\nUtilize obrigatoriamente as informações do documento abaixo para "
+                "embasar suas respostas, caso sejam relevantes para a pergunta do "
+                f"usuário:\n--- INÍCIO DO DOCUMENTO ---\n{contexto_rag}\n--- FIM DO DOCUMENTO ---"
+            )
+
+        mensagens_api = [{"role": "system", "content": sistema_prompt}]
+        for msg in st.session_state.messages:
+            mensagens_api.append({"role": msg["role"], "content": msg["content"]})
+
+        with st.chat_message("assistant"):
+            with st.spinner("Pensando..."):
+                try:
+                    resposta = client.chat.completions.create(
+                        model=meu_modelo, messages=mensagens_api, temperature=0.7
+                    )
+                    resposta_texto = resposta.choices[0].message.content
+                    st.markdown(resposta_texto)
+
+                    st.session_state.messages.append(
+                        {"role": "assistant", "content": resposta_texto}
+                    )
+                except Exception as e:
+                    erro_msg = f"Ocorreu um erro ao comunicar com a API do Microsoft Foundry: {e}"
+                    st.error(erro_msg)
